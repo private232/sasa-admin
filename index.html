@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - إضافة امتحان</title>
+    <title>لوحة التحكم - إدارة الامتحانات</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -14,65 +14,95 @@
             --text: #2b2d42;
             --border: #e9ecef;
             --success: #4cc9f0;
+            --danger: #ef4444;
         }
         * { box-sizing: border-box; font-family: 'Cairo', sans-serif; }
         body { 
             background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
             margin: 0; padding: 20px; color: var(--text); min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
         .container {
-            max-width: 900px; margin: 0 auto;
-            background: rgba(255, 255, 255, 0.85);
+            width: 100%; max-width: 900px;
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            border-radius: 20px; padding: 30px;
+            border-radius: 20px; padding: 40px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             animation: slideUp 0.6s ease-out;
+            display: none; /* مخفي افتراضياً لحين التحقق */
         }
+        /* واجهة تسجيل الدخول مخصصة لتكون أصغر قليلاً */
+        #loginContainer { max-width: 450px; display: block; text-align: center; }
+        
         h1 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; }
-        .form-group { margin-bottom: 20px; }
+        .form-group { margin-bottom: 20px; text-align: right; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, select {
-            width: 100%; padding: 12px; border: 1px solid var(--border);
+            width: 100%; padding: 15px; border: 1px solid var(--border);
             border-radius: 10px; font-size: 16px; outline: none;
-            transition: all 0.3s;
+            transition: all 0.3s; background: #f8fafc;
         }
-        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2); }
+        input:focus, select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2); }
+        
         .question-card {
-            background: var(--surface); border-radius: 15px; padding: 20px;
-            margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            background: var(--surface); border-radius: 15px; padding: 25px;
+            margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
             border-right: 5px solid var(--primary);
             animation: fadeIn 0.5s ease;
         }
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
         @media (max-width: 600px) { .options-grid { grid-template-columns: 1fr; } }
+        
         button {
             background: var(--primary); color: white; border: none;
-            padding: 12px 25px; border-radius: 10px; font-size: 16px;
-            cursor: pointer; transition: transform 0.2s, background 0.3s; font-weight: 600;
+            padding: 15px 25px; border-radius: 10px; font-size: 16px;
+            cursor: pointer; transition: transform 0.2s, background 0.3s; font-weight: 800; width: 100%;
         }
         button:hover { background: var(--secondary); transform: translateY(-2px); }
-        .btn-add { background: var(--success); width: 100%; margin-top: 10px; }
-        .btn-submit { background: var(--text); width: 100%; margin-top: 30px; padding: 15px; font-size: 18px; }
+        .btn-add { background: var(--success); margin-top: 10px; }
+        .btn-submit { background: var(--text); margin-top: 30px; font-size: 18px; }
+        .btn-logout { background: var(--danger); width: auto; padding: 10px 20px; float: left; margin-bottom: 20px;}
+        
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 20px;}
+        .header-actions h1 { margin: 0; }
+
+        .error-msg { color: var(--danger); font-weight: bold; margin-top: 15px; display: none; }
         
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        /* Loader */
         #loader { display: none; text-align: center; margin-top: 20px; color: var(--primary); font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>📝 إضافة امتحان جديد</h1>
+<div class="container" id="loginContainer">
+    <h1>🔒 دخول الإدارة</h1>
+    <div class="form-group">
+        <label>البريد الإلكتروني</label>
+        <input type="email" id="adminEmail" placeholder="admin@ssc.com" required>
+    </div>
+    <div class="form-group">
+        <label>كلمة المرور</label>
+        <input type="password" id="adminPassword" placeholder="••••••••" required>
+    </div>
+    <button type="button" onclick="adminLogin()">تسجيل الدخول</button>
+    <div id="loginError" class="error-msg">بيانات الدخول غير صحيحة!</div>
+</div>
+
+<div class="container" id="dashboardContainer">
+    <div class="header-actions">
+        <h1>📝 إضافة امتحان جديد</h1>
+        <button type="button" class="btn-logout" onclick="adminLogout()">تسجيل خروج 🚪</button>
+    </div>
     
     <div class="form-group">
-        <label>السنة الدراسية (مثال: 2024)</label>
+        <label>السنة الدراسية (مثال: 2026)</label>
         <input type="text" id="examYear" placeholder="أدخل السنة" required>
     </div>
     <div class="form-group">
         <label>كود الامتحان (Exam ID)</label>
-        <input type="text" id="examId" placeholder="مثال: math_101" required>
+        <input type="text" id="examId" placeholder="مثال: test" required>
     </div>
     <div class="form-group">
         <label>مدة الامتحان (بالدقائق)</label>
@@ -90,6 +120,8 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+    // إضافة مكتبات المصادقة Authentication
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyCIrvgkvKMs3_CokaZ4Fudwfe6XOyZu-7M",
@@ -104,7 +136,55 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const auth = getAuth(app);
 
+    // مراقبة حالة تسجيل الدخول
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            // المستخدم مسجل دخول -> إظهار لوحة التحكم
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('dashboardContainer').style.display = 'block';
+        } else {
+            // المستخدم غير مسجل -> إظهار شاشة الدخول
+            document.getElementById('loginContainer').style.display = 'block';
+            document.getElementById('dashboardContainer').style.display = 'none';
+        }
+    });
+
+    // دالة تسجيل الدخول
+    window.adminLogin = async function() {
+        const email = document.getElementById('adminEmail').value.trim();
+        const password = document.getElementById('adminPassword').value.trim();
+        const errorDiv = document.getElementById('loginError');
+
+        if(!email || !password) {
+            errorDiv.innerText = "برجاء إدخال البريد وكلمة المرور.";
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            errorDiv.style.display = 'none';
+            document.getElementById('adminEmail').value = '';
+            document.getElementById('adminPassword').value = '';
+        } catch (error) {
+            console.error("Login Error:", error);
+            errorDiv.innerText = "البيانات غير صحيحة أو الحساب غير موجود.";
+            errorDiv.style.display = 'block';
+        }
+    };
+
+    // دالة تسجيل الخروج
+    window.adminLogout = function() {
+        signOut(auth).then(() => {
+            console.log("تم تسجيل الخروج");
+        }).catch((error) => {
+            console.error("Sign Out Error", error);
+        });
+    };
+
+    // --- أكواد لوحة التحكم الأصلية ---
     let questionCount = 0;
 
     window.addQuestionCard = function() {
@@ -115,7 +195,7 @@
         card.id = `q_${questionCount}`;
         
         card.innerHTML = `
-            <h3>السؤال رقم ${questionCount}</h3>
+            <h3 style="color: var(--primary); margin-top:0;">السؤال رقم ${questionCount}</h3>
             <div class="form-group">
                 <label>نص السؤال</label>
                 <input type="text" class="q-text" placeholder="اكتب السؤال هنا..." required>
@@ -131,15 +211,21 @@
                 <input type="text" class="q-opt" placeholder="الخيار 3" required>
                 <input type="text" class="q-opt" placeholder="الخيار 4" required>
             </div>
-            <div class="form-group" style="margin-top: 15px;">
-                <label>الإجابة الصحيحة (يجب أن تطابق أحد الخيارات بالضبط)</label>
-                <input type="text" class="q-correct" placeholder="اكتب الإجابة الصحيحة هنا" required>
+            <div class="form-group" style="margin-top: 20px;">
+                <label style="color: var(--success);">الإجابة الصحيحة (يجب أن تطابق أحد الخيارات بالضبط)</label>
+                <input type="text" class="q-correct" placeholder="اكتب الإجابة الصحيحة هنا" required style="border-color: var(--success); background: #f0fdf4;">
             </div>
         `;
         container.appendChild(card);
     };
 
     window.submitExam = async function() {
+        // التأكد مرة أخرى من وجود صلاحية
+        if (!auth.currentUser) {
+            alert("يجب تسجيل الدخول أولاً!");
+            return;
+        }
+
         const year = document.getElementById('examYear').value.trim();
         const examId = document.getElementById('examId').value.trim();
         const duration = parseInt(document.getElementById('examDuration').value);
@@ -194,10 +280,14 @@
             // تنظيف الفورم
             document.getElementById('questionsContainer').innerHTML = '';
             questionCount = 0;
-            document.getElementById('examId').value = '';
+            addQuestionCard(); // إضافة كارت فارغ جديد
         } catch (error) {
             console.error("Error adding exam: ", error);
-            alert('حدث خطأ أثناء الحفظ. راجع الكونسول.');
+            if(error.code === 'PERMISSION_DENIED') {
+                alert('عذراً، لا تمتلك الصلاحية لإضافة امتحان. تأكد من قواعد بيانات Firebase.');
+            } else {
+                alert('حدث خطأ أثناء الحفظ. تأكد من الاتصال بالإنترنت.');
+            }
         } finally {
             document.getElementById('loader').style.display = 'none';
         }
