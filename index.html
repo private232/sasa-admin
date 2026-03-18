@@ -13,32 +13,36 @@
             --surface: #ffffff;
             --text: #2b2d42;
             --border: #e9ecef;
-            --success: #4cc9f0;
+            --success: #10b981;
             --danger: #ef4444;
+            --warning: #f59e0b;
         }
         * { box-sizing: border-box; font-family: 'Cairo', sans-serif; }
         body { 
             background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
             margin: 0; padding: 20px; color: var(--text); min-height: 100vh;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
         }
         .container {
-            width: 100%; max-width: 900px;
+            width: 100%; max-width: 1000px;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            border-radius: 20px; padding: 40px;
+            border-radius: 20px; padding: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             animation: slideUp 0.6s ease-out;
-            display: none; /* مخفي افتراضياً لحين التحقق */
+            display: none;
+            margin-top: 20px;
         }
-        /* واجهة تسجيل الدخول مخصصة لتكون أصغر قليلاً */
-        #loginContainer { max-width: 450px; display: block; text-align: center; }
         
-        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; font-weight: 800; }
+        #loginContainer { max-width: 450px; display: block; text-align: center; margin-top: 10vh; }
+        
+        h1, h2 { text-align: center; color: var(--primary); font-weight: 800; }
+        h1 { margin-bottom: 30px; }
+        
         .form-group { margin-bottom: 20px; text-align: right; }
         label { display: block; margin-bottom: 8px; font-weight: 600; }
         input, select {
-            width: 100%; padding: 15px; border: 1px solid var(--border);
+            width: 100%; padding: 12px 15px; border: 1px solid var(--border);
             border-radius: 10px; font-size: 16px; outline: none;
             transition: all 0.3s; background: #f8fafc;
         }
@@ -68,10 +72,34 @@
 
         .error-msg { color: var(--danger); font-weight: bold; margin-top: 15px; display: none; }
         
+        /* تصميم التبويبات Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; background: #f1f5f9; padding: 10px; border-radius: 12px; }
+        .tab-btn { background: transparent; color: var(--text); padding: 12px; border-radius: 8px; width: 50%; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3); }
+        .section-content { display: none; animation: fadeIn 0.4s; }
+        .section-content.active { display: block; }
+
+        /* تصميم جدول النتائج */
+        .search-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-bar input { flex: 1; }
+        .search-bar button { width: auto; white-space: nowrap; }
+        
+        .table-responsive { overflow-x: auto; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; min-width: 1200px; background: white; }
+        th, td { padding: 15px; text-align: right; border-bottom: 1px solid var(--border); font-size: 14px; }
+        th { background: #f8fafc; color: var(--primary); font-weight: 800; position: sticky; top: 0; }
+        tr:hover { background: #f1f5f9; }
+        
+        .badge { padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 12px; display: inline-block; }
+        .badge-pass { background: #d1fae5; color: #065f46; }
+        .badge-fail { background: #fee2e2; color: #991b1b; }
+        .student-motivation { max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+        .student-motivation:hover { white-space: normal; overflow: visible; background: white; position: absolute; z-index: 10; box-shadow: 0 5px 15px rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; max-width: 300px;}
+
+        #loader { display: none; text-align: center; margin-top: 20px; color: var(--primary); font-weight: bold; }
+        
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        
-        #loader { display: none; text-align: center; margin-top: 20px; color: var(--primary); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -92,35 +120,57 @@
 
 <div class="container" id="dashboardContainer">
     <div class="header-actions">
-        <h1>📝 إضافة امتحان جديد</h1>
+        <h1>⚙️ لوحة تحكم مدرسة SSC</h1>
         <button type="button" class="btn-logout" onclick="adminLogout()">تسجيل خروج 🚪</button>
     </div>
-    
-    <div class="form-group">
-        <label>السنة الدراسية (مثال: 2026)</label>
-        <input type="text" id="examYear" placeholder="أدخل السنة" required>
-    </div>
-    <div class="form-group">
-        <label>كود الامتحان (Exam ID)</label>
-        <input type="text" id="examId" placeholder="مثال: test" required>
-    </div>
-    <div class="form-group">
-        <label>مدة الامتحان (بالدقائق)</label>
-        <input type="number" id="examDuration" placeholder="مثال: 60" required>
+
+    <div class="tabs">
+        <button class="tab-btn active" id="tabAddExam" onclick="switchTab('addExam')">📝 إضافة امتحان جديد</button>
+        <button class="tab-btn" id="tabResults" onclick="switchTab('results')">📊 عرض نتائج الطلاب</button>
     </div>
 
-    <div id="questionsContainer"></div>
+    <div id="addExamSection" class="section-content active">
+        <div class="form-group">
+            <label>السنة الدراسية (مثال: 2026)</label>
+            <input type="text" id="examYear" placeholder="أدخل السنة" required value="2026">
+        </div>
+        <div class="form-group">
+            <label>كود الامتحان (Exam ID)</label>
+            <input type="text" id="examId" placeholder="مثال: test" required value="test">
+        </div>
+        <div class="form-group">
+            <label>مدة الامتحان (بالدقائق)</label>
+            <input type="number" id="examDuration" placeholder="مثال: 60" required>
+        </div>
 
-    <button type="button" class="btn-add" onclick="addQuestionCard()">+ إضافة سؤال جديد</button>
-    <button type="button" class="btn-submit" onclick="submitExam()">🚀 حفظ الامتحان في قاعدة البيانات</button>
-    
-    <div id="loader">جاري الحفظ... برجاء الانتظار ⏳</div>
+        <div id="questionsContainer"></div>
+
+        <button type="button" class="btn-add" onclick="addQuestionCard()">+ إضافة سؤال جديد</button>
+        <button type="button" class="btn-submit" onclick="submitExam()">🚀 حفظ الامتحان في قاعدة البيانات</button>
+        
+        <div id="loader">جاري الحفظ... برجاء الانتظار ⏳</div>
+    </div>
+
+    <div id="resultsSection" class="section-content">
+        <div class="search-bar">
+            <input type="text" id="searchYear" placeholder="السنة (مثال: 2026)" value="2026">
+            <input type="text" id="searchExamId" placeholder="كود الامتحان (مثال: test)" value="test">
+            <button type="button" onclick="fetchResults()">جلب النتائج 🔍</button>
+        </div>
+
+        <div class="table-responsive" id="resultsTableContainer">
+            <div style="text-align: center; padding: 40px; color: var(--text-muted); font-weight: bold;">
+                الرجاء الضغط على "جلب النتائج" لعرض بيانات الطلاب.
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-    // إضافة مكتبات المصادقة Authentication
+    // أضفنا get لسحب البيانات
+    import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -141,11 +191,9 @@
     // مراقبة حالة تسجيل الدخول
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            // المستخدم مسجل دخول -> إظهار لوحة التحكم
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('dashboardContainer').style.display = 'block';
         } else {
-            // المستخدم غير مسجل -> إظهار شاشة الدخول
             document.getElementById('loginContainer').style.display = 'block';
             document.getElementById('dashboardContainer').style.display = 'none';
         }
@@ -184,7 +232,99 @@
         });
     };
 
-    // --- أكواد لوحة التحكم الأصلية ---
+    // --- التبديل بين التبويبات ---
+    window.switchTab = function(tabName) {
+        document.getElementById('addExamSection').classList.remove('active');
+        document.getElementById('resultsSection').classList.remove('active');
+        document.getElementById('tabAddExam').classList.remove('active');
+        document.getElementById('tabResults').classList.remove('active');
+
+        if(tabName === 'addExam') {
+            document.getElementById('addExamSection').classList.add('active');
+            document.getElementById('tabAddExam').classList.add('active');
+        } else {
+            document.getElementById('resultsSection').classList.add('active');
+            document.getElementById('tabResults').classList.add('active');
+            // سحب النتائج تلقائياً عند فتح التبويب
+            fetchResults();
+        }
+    };
+
+    // --- جلب وعرض نتائج الطلاب ---
+    window.fetchResults = async function() {
+        const year = document.getElementById('searchYear').value.trim();
+        const examId = document.getElementById('searchExamId').value.trim();
+        const container = document.getElementById('resultsTableContainer');
+
+        if(!year || !examId) {
+            alert("برجاء إدخال السنة وكود الامتحان للبحث");
+            return;
+        }
+
+        container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--primary);">جاري تحميل البيانات... ⏳</div>`;
+
+        try {
+            const resultsRef = ref(db, `exam_results/${year}/${examId}`);
+            const snapshot = await get(resultsRef);
+
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                let html = `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>الاسم الرباعي</th>
+                                <th>العمر</th>
+                                <th>الطول/الوزن</th>
+                                <th>اللبس/الحذاء</th>
+                                <th>الرياضة</th>
+                                <th>النتيجة</th>
+                                <th>الحالة</th>
+                                <th>كود التذكرة</th>
+                                <th>الطموح (سبب التقديم)</th>
+                                <th>وقت التسجيل</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                let counter = 1;
+                // تحويل الـ Object لـ Array لعرضه
+                Object.values(data).forEach(student => {
+                    const statusClass = student.status.includes("Pass") || student.status.includes("ناجح") ? "badge-pass" : "badge-fail";
+                    const sportsList = Array.isArray(student.sports) ? student.sports.join(', ') : student.sports;
+                    
+                    html += `
+                        <tr>
+                            <td>${counter++}</td>
+                            <td style="font-weight:bold;">${student.name || '-'}</td>
+                            <td>${student.age || '-'}</td>
+                            <td dir="ltr">${student.height || '-'} cm <br> ${student.weight || '-'} kg</td>
+                            <td dir="ltr">${student.clothesSize || '-'} <br>👟 ${student.shoeSize || '-'}</td>
+                            <td>${sportsList || '-'}</td>
+                            <td style="font-weight:bold; font-size:16px;">${student.score}/${student.totalScore}</td>
+                            <td><span class="badge ${statusClass}">${student.status}</span></td>
+                            <td style="font-weight:bold; color: var(--primary); letter-spacing:1px;">${student.ticketCode || '-'}</td>
+                            <td><div class="student-motivation">${student.motivation || '-'}</div></td>
+                            <td style="font-size: 12px; color: var(--text-muted);">${student.submissionTime || '-'}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `</tbody></table>`;
+                container.innerHTML = html;
+
+            } else {
+                container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--danger); font-weight:bold;">لا توجد أي نتائج مسجلة لهذا الامتحان حتى الآن.</div>`;
+            }
+        } catch (error) {
+            console.error("Error fetching results: ", error);
+            container.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--danger); font-weight:bold;">حدث خطأ أثناء جلب البيانات. تأكد من الصلاحيات والاتصال بالإنترنت.</div>`;
+        }
+    };
+
+    // --- أكواد إضافة الامتحان (الأساسية) ---
     let questionCount = 0;
 
     window.addQuestionCard = function() {
@@ -220,7 +360,6 @@
     };
 
     window.submitExam = async function() {
-        // التأكد مرة أخرى من وجود صلاحية
         if (!auth.currentUser) {
             alert("يجب تسجيل الدخول أولاً!");
             return;
@@ -277,10 +416,9 @@
         try {
             await set(ref(db, `exams/${year}/${examId}`), examData);
             alert('🎉 تم حفظ الامتحان بنجاح!');
-            // تنظيف الفورم
             document.getElementById('questionsContainer').innerHTML = '';
             questionCount = 0;
-            addQuestionCard(); // إضافة كارت فارغ جديد
+            addQuestionCard();
         } catch (error) {
             console.error("Error adding exam: ", error);
             if(error.code === 'PERMISSION_DENIED') {
